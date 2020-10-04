@@ -39,6 +39,16 @@ def get_player():
     return boy_animation
 
 
+def get_monster(varient):
+    if varient == "SMALL_MUSHROOM":
+        frames = strip_from_sheet(pygame.transform.scale(pygame.image.load("mini_mushroom.png"), (320, 128)), (0, 0), (64, 64), 5, 2)
+        return [frames[0], frames[5]]
+
+
+monster_info = {
+    "SMALL_MUSHROOM": ["mini_mushroom.png", (64, 64)]
+}
+
 animation_info = {
     # "NAME": [ID, FRAME COUNT, SPEED, SIZE]
     "NORTH": [0, 4, 200, (48, 128 * 4)],

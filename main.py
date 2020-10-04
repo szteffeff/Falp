@@ -116,12 +116,33 @@ class Stage:
         pass
 
 
+class Monster:
+    def __init__(self, origin, variant):
+        self.position = origin
+        if variant == "SMALL_MUSHROOM":
+            self.frames = [0, 1]
+            self.animation = definitions.get_monster("SMALL_MUSHROOM")
+            self.size = definitions.monster_info["SMALL_MUSHROOM"][1]
+            self.update_rect = pygame.Rect(0, 0, 64, 64)
+
+    def blit(self):
+        if self.frames[0] > self.frames[1]:
+            self.frames[0] = 0
+
+        frame.blit(self.animation[round(self.frames[0])], (self.position[0] - self.size[0] / 2, self.position[1] - self.size[1] / 2))
+
+        changed_pixels.append(self.update_rect.move(self.position[0] - 32, self.position[1] - 32))
+
+        self.frames[0] += 0.01
+
+
 run = True
 
 clock = pygame.time.Clock()
 
 boy = Player()
 level = Stage()
+shroom = Monster((960, 540), "SMALL_MUSHROOM")
 
 frame = pygame.Surface((1920, 1080))
 
@@ -193,6 +214,7 @@ while run:
         print(boy.position)
 
     boy.blit()
+    shroom.blit()
 
     render_frame()
 
