@@ -31,9 +31,15 @@ def get_shadow():
 def get_player():
     boy = pygame.transform.scale(pygame.image.load("boy_idle.png"), animation_info["IDLE"][3]).convert_alpha()
     boy_rs = pygame.transform.scale(pygame.image.load("boy_run_south.png"), (animation_info["SOUTH"][3])).convert_alpha()
+    boy_rl = pygame.transform.scale(pygame.image.load("boy_run_left.png"), (animation_info["WEST"][3])).convert_alpha()
+    boy_rr = pygame.transform.flip(boy_rl, True, False)
+
     boy_idle = strip_from_sheet(boy, (0, 0), (48, 128), 1, 4)
     boy_run_south = strip_from_sheet(boy_rs, (0, 0), (128, 128), 1, 8)
-    boy_animation = [boy_idle, boy_run_south, boy_idle, boy_idle, boy_idle, boy_idle, boy_run_south,
+    boy_run_west = strip_from_sheet(boy_rl, (0, 0), (128, 128), 1, 8)
+    boy_run_east = strip_from_sheet(boy_rr, (0, 0), (128, 128), 1, 8)
+
+    boy_animation = [boy_idle, boy_run_south, boy_run_east, boy_run_west, boy_idle, boy_idle, boy_run_south,
                      boy_run_south, boy_idle]
 
     return boy_animation
@@ -53,8 +59,8 @@ animation_info = {
     # "NAME": [ID, FRAME COUNT, SPEED, SIZE]
     "NORTH": [0, 4, 200, (48, 128 * 4)],
     "SOUTH": [1, 8, 60, (128, 128 * 8)],
-    "EAST": [2, 4, 200, (48, 128 * 4)],
-    "WEST": [3, 4, 200, (48, 128 * 4)],
+    "EAST": [2, 8, 120, (128, 128 * 8)],
+    "WEST": [3, 8, 120, (128, 128 * 8)],
     "NORTH_EAST": [4, 4, 200, (48, 128 * 4)],
     "NORTH_WEST": [5, 4, 200, (48, 128 * 4)],
     "SOUTH_EAST": [6, 8, 60, (128, 128 * 4)],
