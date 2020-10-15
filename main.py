@@ -1,10 +1,11 @@
 import pygame
 import time
-# import math
+import random
 import definitions
 import functions
+import cProfile
 
-FRAMERATE = 100
+FRAMERATE = 1000
 FULLSCREEN = False
 
 delta = 0
@@ -16,7 +17,6 @@ screen_size = functions.get_scale(functions.resize())[0]
 
 
 def flags():
-    # display = pygame.display.Info()
     if FULLSCREEN:
         display_flags = pygame.DOUBLEBUF | pygame.HWSURFACE | pygame.RESIZABLE
     else:
@@ -39,20 +39,21 @@ class Player:
         self.movement = [0, 0]
         self.shadow = definitions.get_shadow()
         self.dot = pygame.image.load("dot.png")
-        self.update_rect = pygame.Rect(0, 0, 160, 160)
+        self.update_rect = pygame.Rect(0, 0, 128, 148)
         self.collision_size = [44, 24]
+        self.speed = 0.4
 
     def move(self, test):
         self.movement = [0, 0]
         if self.moving[0] or test:
             if self.moving[1] in ["NORTH", "NORTH_EAST", "NORTH_WEST"]:
-                self.movement[1] -= 1 * delta / 4
+                self.movement[1] -= 1 * delta * self.speed
             if self.moving[1] in ["SOUTH", "SOUTH_EAST", "SOUTH_WEST"]:
-                self.movement[1] += 1 * delta / 4
+                self.movement[1] += 1 * delta * self.speed
             if self.moving[1] in ["EAST", "NORTH_EAST", "SOUTH_EAST"]:
-                self.movement[0] += 1 * delta / 4
+                self.movement[0] += 1 * delta * self.speed
             if self.moving[1] in ["WEST", "NORTH_WEST", "SOUTH_WEST"]:
-                self.movement[0] -= 1 * delta / 4
+                self.movement[0] -= 1 * delta * self.speed
 
             if self.moving[1] in ["NORTH_WEST", "SOUTH_WEST", "NORTH_EAST", "SOUTH_EAST"]:
                 xy_avg = round(abs(self.movement[0]) + abs(self.movement[1]) / 2)
@@ -67,18 +68,18 @@ class Player:
                 self.movement[1] = int(input("PLAN1:"))
                 self.moving[1] = input("DIR:")
 
-            self.position = functions.rect_check(self.position, self.movement, self.collision_size, self.moving[1], level.masks[0])
+            self.position = functions.rect_check(self.position, self.movement, self.collision_size, self.moving[1], level.masks)
 
             if 0 >= self.position[0] or self.position[0] >= 1920:
                 if 0 >= self.position[0]:
-                    print("RIGHT")
+                    level.switch("LEFT")
                 else:
-                    print("LEFT")
+                    level.switch("RIGHT")
             elif 0 >= self.position[1] or self.position[1] >= 1080:
                 if 0 >= self.position[1]:
-                    print("UP")
+                    level.switch("UP")
                 else:
-                    print("DOWN")
+                    level.switch("DOWN")
 
     def blit(self):
 
@@ -98,32 +99,76 @@ class Player:
 
         frame.blit(self.dot, (self.position[0], self.position[1] - 1))
 
-        changed_pixels.append(self.update_rect.move(self.position[0] - 80 + 1, self.position[1] - 80 + 9))
+        changed_pixels.append(self.update_rect.move(self.position[0] - (definitions.animation_info[self.moving[1]][3][0] / 2 - 1), self.position[1] - self.RESOLUTION[1] + 9 + frame_size[1][1]))
+
+    def live(self):
+        self.blit()
 
 
 class Stage:
-    STARTING_LEVEL = 00
+    STARTING_LEVEL = 1
 
     def __init__(self):
         self.image_main = definitions.get_level(self.STARTING_LEVEL)
         self.masks = definitions.get_masks(self.STARTING_LEVEL)
-        self.id = 00
+        self.id = 1
+        self.over_map = [7, 5]
+        self.new_frame = 0
 
     def blit(self):
         frame.blit(self.image_main, (0, 0))
 
     def switch(self, direction):
-        pass
+        monsters.clear()
+        monsters.append(boy)
+        if direction == "UP":
+            self.over_map[0] = (self.over_map[0] - 1) % 10
+            self.id = definitions.map_map[self.over_map[0]][self.over_map[1]]
+            self.image_main = definitions.get_level(self.id)
+            self.masks = definitions.get_masks(self.id)
+            boy.position[1] += 1080
+
+        elif direction == "DOWN":
+            self.over_map[0] = (self.over_map[0] + 1) % 10
+            self.id = definitions.map_map[self.over_map[0]][self.over_map[1]]
+            self.image_main = definitions.get_level(self.id)
+            self.masks = definitions.get_masks(self.id)
+            boy.position[1] -= 1080
+
+        elif direction == "LEFT":
+            print("left")
+            self.over_map[1] = (self.over_map[1] - 1) % 10
+            self.id = definitions.map_map[self.over_map[0]][self.over_map[1]]
+            self.image_main = definitions.get_level(self.id)
+            self.masks = definitions.get_masks(self.id)
+            boy.position[0] += 1920
+
+        elif direction == "RIGHT":
+            print("RIGHT")
+            self.over_map[1] = (self.over_map[1] + 1) % 10
+            self.id = definitions.map_map[self.over_map[0]][self.over_map[1]]
+            self.image_main = definitions.get_level(self.id)
+            self.masks = definitions.get_masks(self.id)
+            boy.position[0] -= 1920
+
+        level.blit()
+        self.new_frame = 100
+        render_frame(True)
 
 
 class Monster:
     def __init__(self, origin, variant):
         self.position = origin
+        self.alive = True
+        self.path = None
+        self.movement = 0
         if variant == "SMALL_MUSHROOM":
             self.frames = [0, 1]
             self.animation = definitions.get_monster("SMALL_MUSHROOM")
             self.size = definitions.monster_info["SMALL_MUSHROOM"][1]
-            self.update_rect = pygame.Rect(0, 0, 64, 64)
+            self.update_rect = pygame.Rect(0, 0, 48, 48)
+            self.speed = (definitions.monster_info["SMALL_MUSHROOM"][2] * (random.uniform(0.5, 1.5)))
+            self.health = definitions.monster_info["SMALL_MUSHROOM"][3]
 
     def blit(self):
         if self.frames[0] > self.frames[1]:
@@ -131,9 +176,41 @@ class Monster:
 
         frame.blit(self.animation[round(self.frames[0])], (self.position[0] - self.size[0] / 2, self.position[1] - self.size[1] / 2))
 
-        changed_pixels.append(self.update_rect.move(self.position[0] - 32, self.position[1] - 32))
+        frame.blit(boy.dot, (self.position[0], self.position[1]))
+
+        changed_pixels.append(self.update_rect.move(self.position[0] - 24, self.position[1] - 24 + frame_size[1][1]))
 
         self.frames[0] += 0.01
+
+    def pathfind(self, target):
+
+        if not self.path:
+            path_to_target = functions.get_line(self.position, [round(target[0]), round(target[1])])
+
+            for pos in path_to_target:
+                if level.masks[0].get_at(pos):
+                    self.path = functions.get_line(self.position, (round(random.random() * 1919), round(random.random() * 1079)))
+                    for index, pos2 in enumerate(self.path):
+                        if level.masks[0].get_at(pos2):
+                            del self.path[:index]
+                            break
+                else:
+                    self.path = path_to_target
+        else:
+            if self.movement >= 100:
+                self.position = self.path[0]
+                self.movement = 0
+                del self.path[0]
+            self.movement += 10 * delta * self.speed
+
+    def die(self):
+        pass
+
+    def live(self):
+        self.blit()
+        self.pathfind(boy.position)
+        if self.health <= 0:
+            self.die()
 
 
 run = True
@@ -142,16 +219,22 @@ clock = pygame.time.Clock()
 
 boy = Player()
 level = Stage()
-shroom = Monster((960, 540), "SMALL_MUSHROOM")
+monsters = [boy]
+
+for i in range(1):
+    monsters.append(Monster([960, 540], "SMALL_MUSHROOM"))
+
+move = pygame.event.custom_type()
+
+pygame.time.set_timer(move, 1556)
 
 frame = pygame.Surface((1920, 1080))
 
-# function optimizations
 frame_size = functions.get_scale(screen_size)
 
 
-def render_frame():
-    if frame_size[0] != [1920, 1080]:
+def render_frame(refresh):
+    if frame_size[0] != [1920, 1080] or refresh:
         full_frame = pygame.transform.scale(frame, frame_size[0])
         screen.blit(full_frame, frame_size[1])
         pygame.display.update()
@@ -160,62 +243,78 @@ def render_frame():
         pygame.display.update(changed_pixels)
 
 
-while run:
-    changed_pixels = []
-    delta = clock.tick(FRAMERATE)
-    delta2 = clock.get_fps()
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            run = False
-        if event.type == pygame.VIDEORESIZE:
-            screen = pygame.display.set_mode(event.size, flags())
-            screen_size = event.size
-            frame_size = functions.get_scale(screen_size)
-            render_frame()
+def main():
+    global run
+    global delta
+    global changed_pixels
+    global screen
+    global screen_size
+    global frame_size
+
+    while run:
+        changed_pixels = []
+        delta = clock.tick(FRAMERATE)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                run = False
+            if event.type == pygame.VIDEORESIZE:
+                screen = pygame.display.set_mode(event.size, flags())
+                screen_size = event.size
+                frame_size = functions.get_scale(screen_size)
+                render_frame(True)
+                pygame.display.update()
+            if event.type == move:
+                pass
+
+        keys = pygame.key.get_pressed()
+
+        level.blit()
+
+        if keys[pygame.K_w] or keys[pygame.K_a] or keys[pygame.K_s] or keys[pygame.K_d]:
+            if keys[pygame.K_w] and not (keys[pygame.K_d] or keys[pygame.K_a] or keys[pygame.K_s]):
+                boy.moving = [True, "NORTH", boy.moving[2]]
+            elif keys[pygame.K_a] and not (keys[pygame.K_w] or keys[pygame.K_d] or keys[pygame.K_s]):
+                boy.moving = [True, "WEST", boy.moving[2]]
+            elif keys[pygame.K_s] and not (keys[pygame.K_w] or keys[pygame.K_a] or keys[pygame.K_d]):
+                boy.moving = [True, "SOUTH", boy.moving[2]]
+            elif keys[pygame.K_d] and not (keys[pygame.K_w] or keys[pygame.K_s] or keys[pygame.K_a]):
+                boy.moving = [True, "EAST", boy.moving[2]]
+            elif keys[pygame.K_w] and keys[pygame.K_d] and not (keys[pygame.K_s] or keys[pygame.K_a]):
+                boy.moving = [True, "NORTH_EAST", boy.moving[2]]
+            elif keys[pygame.K_w] and keys[pygame.K_a] and not (keys[pygame.K_s] or keys[pygame.K_d]):
+                boy.moving = [True, "NORTH_WEST", boy.moving[2]]
+            elif keys[pygame.K_s] and keys[pygame.K_d] and not (keys[pygame.K_w] or keys[pygame.K_a]):
+                boy.moving = [True, "SOUTH_EAST", boy.moving[2]]
+            elif keys[pygame.K_s] and keys[pygame.K_a] and not (keys[pygame.K_w] or keys[pygame.K_d]):
+                boy.moving = [True, "SOUTH_WEST", boy.moving[2]]
+            boy.move(False)
+        else:
+            boy.moving = [False, "IDLE", boy.moving[2]]
+
+        if keys[pygame.K_u]:
             pygame.display.update()
+            print(frame_size[1])
 
-    keys = pygame.key.get_pressed()
+        if keys[pygame.K_p]:
+            time.sleep(1)
 
-    level.blit()
+        if keys[pygame.K_t]:
+            boy.speed = float(input("SPEED"))
 
-    # level.masks[0].to_surface(frame)
+        if keys[pygame.K_i]:
+            print(boy.position)
 
-    if keys[pygame.K_w] or keys[pygame.K_a] or keys[pygame.K_s] or keys[pygame.K_d]:
-        if keys[pygame.K_w] and not (keys[pygame.K_d] or keys[pygame.K_a] or keys[pygame.K_s]):
-            boy.moving = [True, "NORTH", boy.moving[2]]
-        elif keys[pygame.K_a] and not (keys[pygame.K_w] or keys[pygame.K_d] or keys[pygame.K_s]):
-            boy.moving = [True, "WEST", boy.moving[2]]
-        elif keys[pygame.K_s] and not (keys[pygame.K_w] or keys[pygame.K_a] or keys[pygame.K_d]):
-            boy.moving = [True, "SOUTH", boy.moving[2]]
-        elif keys[pygame.K_d] and not (keys[pygame.K_w] or keys[pygame.K_s] or keys[pygame.K_a]):
-            boy.moving = [True, "EAST", boy.moving[2]]
-        elif keys[pygame.K_w] and keys[pygame.K_d] and not (keys[pygame.K_s] or keys[pygame.K_a]):
-            boy.moving = [True, "NORTH_EAST", boy.moving[2]]
-        elif keys[pygame.K_w] and keys[pygame.K_a] and not (keys[pygame.K_s] or keys[pygame.K_d]):
-            boy.moving = [True, "NORTH_WEST", boy.moving[2]]
-        elif keys[pygame.K_s] and keys[pygame.K_d] and not (keys[pygame.K_w] or keys[pygame.K_a]):
-            boy.moving = [True, "SOUTH_EAST", boy.moving[2]]
-        elif keys[pygame.K_s] and keys[pygame.K_a] and not (keys[pygame.K_w] or keys[pygame.K_d]):
-            boy.moving = [True, "SOUTH_WEST", boy.moving[2]]
-        boy.move(False)
-    else:
-        boy.moving = [False, "IDLE", boy.moving[2]]
+        for mon in monsters:
+            mon.live()
 
-    if keys[pygame.K_u]:
-        pygame.display.update()
+        render_frame(False)
+        if level.new_frame > 0:
+            render_frame(True)
+            level.new_frame -= 1
 
-    if keys[pygame.K_p]:
-        time.sleep(1)
+        pygame.display.set_caption(f"RESOLUTION:{frame_size[0]} | STAGE-ID:{level.id} | OVERMAP:{list(reversed(level.over_map))} POSITION:{boy.position} | {round(clock.get_fps())} FPS")
 
-    if keys[pygame.K_t]:
-        boy.move(True)
 
-    if keys[pygame.K_i]:
-        print(boy.position)
-
-    boy.blit()
-    shroom.blit()
-
-    render_frame()
+cProfile.run('main()')
 
 pygame.quit()
