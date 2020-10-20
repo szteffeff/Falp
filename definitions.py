@@ -52,6 +52,11 @@ def get_monster(varient):
         return [frames[0], frames[5]]
 
 
+def get_menu():
+    full = strip_from_sheet(pygame.image.load("menu.png").convert(), (0, 0), (32, 32), 3, 1)
+    return full
+
+
 monster_info = {
     # "NAME": [IMAGE, SIZE, SPEED]
     "SMALL_MUSHROOM": ["mini_mushroom.png", (32, 32), 0.5, 10]

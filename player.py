@@ -15,7 +15,7 @@ class Player:
         self.dot = pygame.image.load("dot.png")
         self.update_rect = pygame.Rect(0, 0, 128, 148)
         self.collision_size = [44, 24]
-        self.speed = 0.4
+        self.speed = 0.8
         self.surface = pygame.Surface((148, 148))
 
     def move(self, delta, masks):

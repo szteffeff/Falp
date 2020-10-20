@@ -4,6 +4,8 @@ import functions
 import player
 import stage
 import monster
+import user_interface
+import cProfile
 
 FRAMERATE = 100
 FULLSCREEN = False
@@ -18,9 +20,9 @@ screen_size = functions.get_scale(functions.resize())[0]
 
 def flags():
     if FULLSCREEN:
-        display_flags = pygame.DOUBLEBUF | pygame.HWSURFACE | pygame.RESIZABLE
+        display_flags = pygame.DOUBLEBUF | pygame.HWSURFACE | pygame.FULLSCREEN
     else:
-        display_flags = pygame.DOUBLEBUF | pygame.HWSURFACE
+        display_flags = pygame.DOUBLEBUF | pygame.HWSURFACE | pygame.RESIZABLE
     return display_flags
 
 
@@ -35,6 +37,7 @@ clock = pygame.time.Clock()
 boy = player.Player()
 level = stage.Stage()
 monster = monster.Monster((960, 540), "SMALL_MUSHROOM")
+menu = user_interface.Menu()
 
 move = pygame.event.custom_type()
 
@@ -44,6 +47,16 @@ frame = pygame.Surface((1920, 1080))
 
 frame_size = functions.get_scale(screen_size)
 
+
+def dialog_box(position, size):
+    global delta
+    delta = 0
+    frame.blits(menu.dialog(position, size), False)
+    render_frame(True)
+    while True:
+        if pygame.mouse.get_pressed()[0]:
+            break
+        print(pygame.mouse.get_pressed())
 
 def render_frame(refresh):
     if frame_size[0] != [1920, 1080] or refresh:
@@ -67,7 +80,7 @@ def main():
 
     while run:
         changed_pixels = []
-        delta = clock.tick(FRAMERATE)
+        delta = clock.tick(FRAMERATE) / 2
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
@@ -117,8 +130,8 @@ def main():
         if keys[pygame.K_t]:
             boy.speed = float(input("SPEED"))
 
-        if keys[pygame.K_i]:
-            print(boy.position)
+        if keys[pygame.K_b]:
+            dialog_box([960, 540], 5)
 
         every = [level.blit(), monster.blit(), boy.blit(delta)[0], boy.blit(delta)[1]]
 
@@ -132,6 +145,6 @@ def main():
         pygame.display.set_caption(f"RESOLUTION:{frame_size[0]} | STAGE-ID:{level.id} | OVERMAP:{list(reversed(level.over_map))} POSITION:{boy.position} | {round(clock.get_fps())} FPS")
 
 
-# cProfile.run('main()')
+cProfile.run('main()')
 
 main()
